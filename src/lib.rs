@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq)]
-enum Instruction {
+pub enum Instruction {
     Increment,
     Decrement,
     Left,
@@ -11,7 +11,7 @@ enum Instruction {
 }
 
 
-fn parse_string(code: &str) -> Vec<Instruction> {
+pub fn parse_string(code: &str) -> Vec<Instruction> {
     code.chars().filter_map({
         |x| match x {
             '+' => Some(Instruction::Increment),
@@ -27,8 +27,8 @@ fn parse_string(code: &str) -> Vec<Instruction> {
     }).collect()
 }
 
-fn run(code: &str) {
-
+pub fn run(code: &str) {
+    let instructions = parse_string(code);
 }
 
 

@@ -7,15 +7,34 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'bf-interpreter'",
+            "name": "Debug unit tests in library 'bf-rs'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=bf-rs"
+                ],
+                "filter": {
+                    "name": "bf-rs",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'bf-rs'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=bf-interpreter",
-                    "--package=bf-interpreter"
+                    "--bin=bf-rs",
+                    "--package=bf-rs"
                 ],
                 "filter": {
-                    "name": "bf-interpreter",
+                    "name": "bf-rs",
                     "kind": "bin"
                 }
             },
@@ -25,16 +44,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'bf-interpreter'",
+            "name": "Debug unit tests in executable 'bf-rs'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=bf-interpreter",
-                    "--package=bf-interpreter"
+                    "--bin=bf-rs",
+                    "--package=bf-rs"
                 ],
                 "filter": {
-                    "name": "bf-interpreter",
+                    "name": "bf-rs",
                     "kind": "bin"
                 }
             },
