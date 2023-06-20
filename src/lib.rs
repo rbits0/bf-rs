@@ -55,7 +55,7 @@ pub fn run(code: &str) -> Result<(), Box<dyn Error>>{
                 }
             },
             Instruction::Left => {
-                pointer.saturating_sub(1);
+                pointer = pointer.saturating_sub(1);
             },
             Instruction::Right => {
                 pointer += 1;
@@ -64,12 +64,16 @@ pub fn run(code: &str) -> Result<(), Box<dyn Error>>{
                 }
             },
             Instruction::Open => {
-                let remaining_instructions = &instructions[(pointer + 1)..];
-                pointer = find_matching_bracket(remaining_instructions, true)? + pointer + 1;
+                if data[pointer] == 0 {
+                    let remaining_instructions = &instructions[(i + 1)..];
+                    i = find_matching_bracket(remaining_instructions, true)? + i + 1;
+                }
             },
             Instruction::Close => {
-                let remaining_instructions = &instructions[..pointer];
-                pointer = find_matching_bracket(remaining_instructions, false)?;
+                if data[pointer] != 0 {
+                    let remaining_instructions = &instructions[..i];
+                    i = find_matching_bracket(remaining_instructions, false)?;
+                }
             },
             Instruction::Input => {
                 let mut input: [u8; 1] = [0];
@@ -85,9 +89,10 @@ pub fn run(code: &str) -> Result<(), Box<dyn Error>>{
             }
         }
 
-        panic!("reached end of loop");
+        i += 1;
     }
     
+    println!();
     Ok(())
 }
 
