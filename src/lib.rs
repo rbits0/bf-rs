@@ -1,4 +1,37 @@
 use std::{error::Error, io::{self, Read}};
+use clap::{Parser, ValueEnum};
+
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct Args {
+    pub filepath: String,
+
+    #[arg(short, long, value_enum, default_value_t=DebugMode::None)]
+    pub debug_mode: DebugMode,
+    
+    /// Enable breakpoints
+    #[arg(short='b', long)]
+    pub breakpoints: bool,
+
+    /// Enable macros
+    #[arg(short='m', long)]
+    pub macros: bool,
+}
+
+
+#[derive(ValueEnum, Clone, Debug, PartialEq)]
+pub enum DebugMode {
+    None,
+    
+    /// Print memory and instructions
+    Verbose,
+    
+    /// Verbose, but pause at every instruction
+    Step,
+}
+
+
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Instruction {
@@ -29,7 +62,21 @@ pub fn parse_string(code: &str) -> Vec<Instruction> {
     }).collect()
 }
 
-pub fn run(code: &str) -> Result<(), Box<dyn Error>>{
+
+pub fn instruction_to_char(instruction: &Instruction) -> char {
+    match instruction {
+        Instruction::Increment => '+',
+        Instruction::Decrement => '-',
+        Instruction::Left => '<',
+        Instruction::Right => '>',
+        Instruction::Open => '[',
+        Instruction::Close => ']',
+        Instruction::Input => ',',
+        Instruction::Output => '.'
+    }
+}
+
+pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), Box<dyn Error>> {
     let instructions = parse_string(code);
     // Location of the instruction pointer
     let mut i: usize = 0;
@@ -87,6 +134,19 @@ pub fn run(code: &str) -> Result<(), Box<dyn Error>>{
                 let output = data[pointer] as char;
                 print!("{}", output);
             }
+        }
+        
+
+        if debug_mode == DebugMode::Step || debug_mode == DebugMode::Verbose {
+            print!("{}:", instruction_to_char(&instructions[i]));
+            for x in &data {
+                print!(" {}", x);
+            }
+            println!();
+        }
+        
+        if debug_mode == DebugMode::Step {
+            io::stdin().read_line(&mut String::new())?;
         }
 
         i += 1;
