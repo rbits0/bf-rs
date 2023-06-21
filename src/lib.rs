@@ -86,7 +86,9 @@ pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), B
     let mut data: Vec<u8> = vec![0];
     
     while i < instructions.len() {
-        match instructions[i] {
+        let instruction = &instructions[i];
+
+        match instruction {
             Instruction::Increment => {
                 if data[pointer] == 127 {
                     data[pointer] = 0;
@@ -138,7 +140,7 @@ pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), B
         
 
         if debug_mode == DebugMode::Step || debug_mode == DebugMode::Verbose {
-            print!("{}:", instruction_to_char(&instructions[i]));
+            print!("{}:", instruction_to_char(instruction));
             for x in &data {
                 print!(" {}", x);
             }
