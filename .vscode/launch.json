@@ -39,6 +39,9 @@
                 }
             },
             "args": [
+                "-bm",
+                "-d",
+                "verbose",
                 "test.bf"
             ],
             "cwd": "${workspaceFolder}"
