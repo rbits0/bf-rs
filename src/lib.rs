@@ -46,7 +46,11 @@ pub enum Instruction {
 }
 
 
-pub fn parse_string(code: &str) -> Vec<Instruction> {
+const valid_chars: Vec<char> = vec!['[', ']', '<', '>', '+', '-', '.', ','];
+
+
+fn parse_string_basic(code: &str) -> Vec<Instruction> {
+    // Split at '@' so I can see whether they are macros or breakpoints
     code.chars().filter_map({
         |x| match x {
             '+' => Some(Instruction::Increment),
@@ -60,6 +64,45 @@ pub fn parse_string(code: &str) -> Vec<Instruction> {
             _ => None,
         }
     }).collect()
+}
+
+pub fn parse_string(code: &str) -> Result<Vec<Instruction>, Box<dyn Error>> {
+    // Process brackets first
+    let mut split_string: Vec<&str> = Vec::new();
+    let mut remaining_string = code;
+    
+    while remaining_string.len() > 0 {
+        match remaining_string.find('{') {
+            Some(i) => {
+                split_string.push(&remaining_string[..i]);
+                remaining_string = &remaining_string[(i + 1)..];
+                
+                let Some(close_index) = remaining_string.find('}') else {
+                    return Err("all curly brackets must be matched".into());
+                };
+                let macro_string = &remaining_string[..close_index];
+                if macro_string.contains('{') {
+                    return Err("macros in macros are not allowed".into());
+                }
+                
+                let Some(macro_name) = split_string.last() else {
+                    return Err("macros must have a name".into());
+                };
+                let Some(macro_name) = macro_name.split_whitespace().last() else {
+                    return Err("macros must have a name".into());
+                };
+                
+                // If macro_name contains anything in valid_chars
+                if valid_chars.iter().any(|c| macro_name.contains(*c)) {
+                    return Err("macro name cannot contain instructions".into());
+                }
+            }
+        }
+
+    }
+
+
+    Vec::new()
 }
 
 
@@ -77,7 +120,7 @@ pub fn instruction_to_char(instruction: &Instruction) -> char {
 }
 
 pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), Box<dyn Error>> {
-    let instructions = parse_string(code);
+    let instructions = parse_string(code)?;
     // Location of the instruction pointer
     let mut i: usize = 0;
     // Location of the data pointer
