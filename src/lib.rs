@@ -219,7 +219,7 @@ pub fn run(code: &str, breakpoints: bool, macros: bool, debug_mode: DebugMode) -
         }
         
 
-        if debug_mode == DebugMode::Step || debug_mode == DebugMode::Verbose {
+        if (debug_mode == DebugMode::Step || debug_mode == DebugMode::Verbose) && !is_break {
             print!("{}:", instruction_to_char(instruction));
             for x in &data {
                 print!(" {}", x);
