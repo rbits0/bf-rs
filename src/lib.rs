@@ -1,4 +1,4 @@
-use std::{error::Error, io::{self, Read}};
+use std::{error::Error, io::{self, Read}, collections::HashMap};
 use clap::{Parser, ValueEnum};
 
 
@@ -43,13 +43,14 @@ pub enum Instruction {
     Close,
     Input,
     Output,
+    Break,
 }
 
 
-const valid_chars: Vec<char> = vec!['[', ']', '<', '>', '+', '-', '.', ','];
+const VALID_CHARS: [char; 8]= ['[', ']', '<', '>', '+', '-', '.', ','];
 
 
-fn parse_string_basic(code: &str) -> Vec<Instruction> {
+fn parse_string(code: &str, breakpoints: bool) -> Vec<Instruction> {
     // Split at '@' so I can see whether they are macros or breakpoints
     code.chars().filter_map({
         |x| match x {
@@ -61,22 +62,26 @@ fn parse_string_basic(code: &str) -> Vec<Instruction> {
             ']' => Some(Instruction::Close),
             ',' => Some(Instruction::Input),
             '.' => Some(Instruction::Output),
+            '@' => Some(Instruction::Break),
             _ => None,
         }
     }).collect()
 }
 
-pub fn parse_string(code: &str) -> Result<Vec<Instruction>, Box<dyn Error>> {
+pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruction>, Box<dyn Error>> {
     // Process brackets first
-    let mut split_string: Vec<&str> = Vec::new();
+
+    let mut split_string: Vec<String> = Vec::new();
     let mut remaining_string = code;
+    let mut macro_strings: HashMap<String, String> = HashMap::new();
     
-    while remaining_string.len() > 0 {
+    while !remaining_string.is_empty() {
         match remaining_string.find('{') {
             Some(i) => {
-                split_string.push(&remaining_string[..i]);
+                split_string.push(remaining_string[..i].to_string());
                 remaining_string = &remaining_string[(i + 1)..];
                 
+                // Find closing bracket
                 let Some(close_index) = remaining_string.find('}') else {
                     return Err("all curly brackets must be matched".into());
                 };
@@ -85,6 +90,7 @@ pub fn parse_string(code: &str) -> Result<Vec<Instruction>, Box<dyn Error>> {
                     return Err("macros in macros are not allowed".into());
                 }
                 
+                // Find macro name
                 let Some(macro_name) = split_string.last() else {
                     return Err("macros must have a name".into());
                 };
@@ -92,17 +98,36 @@ pub fn parse_string(code: &str) -> Result<Vec<Instruction>, Box<dyn Error>> {
                     return Err("macros must have a name".into());
                 };
                 
-                // If macro_name contains anything in valid_chars
-                if valid_chars.iter().any(|c| macro_name.contains(*c)) {
+                // If macro_name contains any instruction, error
+                if VALID_CHARS.iter().any(|c| macro_name.contains(*c)) {
                     return Err("macro name cannot contain instructions".into());
                 }
+                
+                macro_strings.insert(macro_name.to_string(), remaining_string[..close_index].to_string());
+                remaining_string = &remaining_string[(close_index + 1)..]
+            },
+            None => {
+                if remaining_string.contains('}') {
+                    return Err("all curly brackets must be matched".into());
+                }
+                split_string.push(remaining_string.to_string());
+                break;
             }
         }
-
     }
+    
 
+    // Replace all macro calls with the macro code
+    for (macro_name, macro_string) in macro_strings {
+        let macro_name = "@".to_string() + &macro_name;
+        for code_string in &mut split_string {
+            *code_string = code_string.replace(&macro_name, &macro_string);
+        }
+    }
+    
 
-    Vec::new()
+    // Parse all strings, and join them into one vec
+    Ok(split_string.iter().map(|s| parse_string(s, breakpoints)).flatten().collect())
 }
 
 
@@ -115,12 +140,20 @@ pub fn instruction_to_char(instruction: &Instruction) -> char {
         Instruction::Open => '[',
         Instruction::Close => ']',
         Instruction::Input => ',',
-        Instruction::Output => '.'
+        Instruction::Output => '.',
+        Instruction::Break => '@',
     }
 }
 
-pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), Box<dyn Error>> {
-    let instructions = parse_string(code)?;
+pub fn run(code: &str, breakpoints: bool, macros: bool, debug_mode: DebugMode) -> Result<(), Box<dyn Error>> {
+    let instructions = {
+        if macros {
+            parse_string_macros(code, breakpoints)?
+        } else {
+            parse_string(code, breakpoints)
+        }
+    };
+
     // Location of the instruction pointer
     let mut i: usize = 0;
     // Location of the data pointer
@@ -130,6 +163,7 @@ pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), B
     
     while i < instructions.len() {
         let instruction = &instructions[i];
+        let mut is_break = false;
 
         match instruction {
             Instruction::Increment => {
@@ -178,6 +212,9 @@ pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), B
             Instruction::Output => {
                 let output = data[pointer] as char;
                 print!("{}", output);
+            },
+            Instruction::Break => {
+                is_break = true;
             }
         }
         
@@ -190,7 +227,7 @@ pub fn run(code: &str, breakpoints: bool, debug_mode: DebugMode) -> Result<(), B
             println!();
         }
         
-        if debug_mode == DebugMode::Step {
+        if debug_mode == DebugMode::Step || is_break {
             io::stdin().read_line(&mut String::new())?;
         }
 
@@ -249,7 +286,7 @@ mod tests {
     #[test]
     fn parse_string_test() {
         assert_eq!(
-            parse_string("a<+<c<]"),
+            parse_string("a<+<c<]", true),
             vec![Instruction::Left, Instruction::Increment, Instruction::Left, Instruction::Left, Instruction::Close]
         );
     }
@@ -258,7 +295,7 @@ mod tests {
     fn forward_match() {
         assert_eq!(
             Ok(5),
-            find_matching_bracket(&parse_string("-[-]-]]--"), true)
+            find_matching_bracket(&parse_string("-[-]-]]--", true), true)
         );
     }
     
@@ -266,7 +303,7 @@ mod tests {
     fn backward_match() {
         assert_eq!(
             Ok(3),
-            find_matching_bracket(&parse_string("--[[-[-]-"), false)
+            find_matching_bracket(&parse_string("--[[-[-]-", true), false)
         );
     }
 }

@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let filepath = args.filepath;
     let code_string = fs::read_to_string(filepath)?;
     
-    run(&code_string, args.breakpoints, args.debug_mode)?;
+    run(&code_string, args.breakpoints, args.macros, args.debug_mode)?;
     
     Ok(())
 }
