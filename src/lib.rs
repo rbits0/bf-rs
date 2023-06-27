@@ -103,7 +103,7 @@ pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruct
                     return Err("macro name cannot contain instructions".into());
                 }
                 
-                macro_strings.insert(macro_name.to_string(), remaining_string[..close_index].to_string());
+                macro_strings.insert("@".to_string() + macro_name, remaining_string[..close_index].to_string());
                 remaining_string = &remaining_string[(close_index + 1)..]
             },
             None => {
@@ -118,9 +118,39 @@ pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruct
     
 
     // Replace all macro calls with the macro code
-    // TODO: Let macros call other macros, but disallow recursion
+    // First do the macros
+    let mut remaining_macros = macro_strings.clone();
+    let mut processed_macros: HashMap<String, String> = HashMap::new();
+    while !remaining_macros.is_empty() {
+        let macro_names: Vec<&String> = remaining_macros.keys().collect();
+
+        // Process the ones that don't call unprocessed macros
+        // If all the unprocessed macros call another unprocessed macro,
+        // that means they're recursive
+        let mut to_remove: Vec<String> = Vec::new();
+        for (macro_name, macro_code) in remaining_macros.iter().filter(
+            |(_, macro_code)| macro_names.iter().all(|name| !macro_code.contains(*name))
+        ) {
+            let mut new_code = macro_code.to_string();
+            for (macro_name2, macro_code2) in &processed_macros {
+                new_code = new_code.replace(macro_name2, macro_code2);
+            }
+            
+            processed_macros.insert(macro_name.to_string(), new_code);
+            to_remove.push(macro_name.to_string())
+        }
+        
+        if to_remove.is_empty() {
+            return Err("recursive macros are not allowed".into());
+        }
+        
+        for macro_name in to_remove {
+            remaining_macros.remove(&macro_name);
+        }
+    }
+
+    // Then do the non-macro code
     for (macro_name, macro_string) in macro_strings {
-        let macro_name = "@".to_string() + &macro_name;
         for code_string in &mut split_string {
             *code_string = code_string.replace(&macro_name, &macro_string);
         }
@@ -352,5 +382,29 @@ test {
         let instructions = vec![Left, Right, Increment, Increment, Increment, Decrement];
 
         assert_eq!(parse_string_macros(code, false).unwrap(), instructions);
+    }
+
+    #[test]
+    fn macro_calls_macro() {
+        use Instruction::*;
+
+        let code = "@a .+ @b
+a {
+    + @b
+}
+b {
+    -
+}";
+        let instructions = vec![
+            Increment,
+            Decrement,
+            Output,
+            Increment,
+            Decrement,
+        ];
+
+        // dbg!(parse_string_macros(code, true).unwrap());
+
+        assert_eq!(parse_string_macros(code, true).unwrap(), instructions)
     }
 }
