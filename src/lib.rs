@@ -150,7 +150,7 @@ pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruct
     }
 
     // Then do the non-macro code
-    for (macro_name, macro_string) in macro_strings {
+    for (macro_name, macro_string) in processed_macros {
         for code_string in &mut split_string {
             *code_string = code_string.replace(&macro_name, &macro_string);
         }
