@@ -306,4 +306,40 @@ mod tests {
             find_matching_bracket(&parse_string("--[[-[-]-", true), false)
         );
     }
+    
+    #[test]
+    fn macro_parse_test() {
+        use Instruction::*;
+        let code = ">+,@test.@test,
+test {
+    [+<]
+}";
+        let instructions = vec![
+            Right,
+            Increment,
+            Input,
+            Open,
+            Increment,
+            Left,
+            Close,
+            Output,
+            Open,
+            Increment,
+            Left,
+            Close,
+            Input
+        ];
+        
+        assert_eq!(parse_string_macros(code, true).unwrap(), instructions)
+    }
+
+    #[test]
+    fn break_parse_test() {
+        use Instruction::*;
+
+        let code = "<>@+@abc++@ -";
+        let instructions = vec![Left, Right, Break, Increment, Break, Increment, Increment, Break, Decrement];
+
+        assert_eq!(parse_string_macros(code, true).unwrap(), instructions);
+    }
 }
