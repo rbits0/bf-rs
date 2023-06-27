@@ -62,7 +62,7 @@ fn parse_string(code: &str, breakpoints: bool) -> Vec<Instruction> {
             ']' => Some(Instruction::Close),
             ',' => Some(Instruction::Input),
             '.' => Some(Instruction::Output),
-            '@' => Some(Instruction::Break),
+            '@' => if breakpoints { Some(Instruction::Break) } else { None },
             _ => None,
         }
     }).collect()
@@ -341,5 +341,15 @@ test {
         let instructions = vec![Left, Right, Break, Increment, Break, Increment, Increment, Break, Decrement];
 
         assert_eq!(parse_string_macros(code, true).unwrap(), instructions);
+    }
+
+    #[test]
+    fn break_parse_disabled() {
+        use Instruction::*;
+
+        let code = "<>@+@abc++@ -";
+        let instructions = vec![Left, Right, Increment, Increment, Increment, Decrement];
+
+        assert_eq!(parse_string_macros(code, false).unwrap(), instructions);
     }
 }
