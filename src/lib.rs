@@ -118,6 +118,7 @@ pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruct
     
 
     // Replace all macro calls with the macro code
+    // TODO: Let macros call other macros, but disallow recursion
     for (macro_name, macro_string) in macro_strings {
         let macro_name = "@".to_string() + &macro_name;
         for code_string in &mut split_string {
