@@ -103,7 +103,8 @@ pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruct
                     return Err("macro name cannot contain instructions".into());
                 }
                 
-                macro_strings.insert("@".to_string() + macro_name, remaining_string[..close_index].to_string());
+                // @macro_name<space> so I can easily find and replace
+                macro_strings.insert("@".to_string() + macro_name + "@", remaining_string[..close_index].to_string());
                 remaining_string = &remaining_string[(close_index + 1)..]
             },
             None => {
@@ -341,7 +342,7 @@ mod tests {
     #[test]
     fn macro_parse_test() {
         use Instruction::*;
-        let code = ">+,@test.@test,
+        let code = ">+,@test@.@test@,
 test {
     [+<]
 }";
@@ -388,9 +389,9 @@ test {
     fn macro_calls_macro() {
         use Instruction::*;
 
-        let code = "@a .+ @b
+        let code = "@a@ .+ @b@
 a {
-    + @b
+    + @b@
 }
 b {
     -
