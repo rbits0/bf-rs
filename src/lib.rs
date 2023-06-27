@@ -127,7 +127,7 @@ pub fn parse_string_macros(code: &str, breakpoints: bool) -> Result<Vec<Instruct
     
 
     // Parse all strings, and join them into one vec
-    Ok(split_string.iter().map(|s| parse_string(s, breakpoints)).flatten().collect())
+    Ok(split_string.iter().flat_map(|s| parse_string(s, breakpoints)).collect())
 }
 
 
