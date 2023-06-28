@@ -254,11 +254,17 @@ pub fn run(code: &str, breakpoints: bool, macros: bool, debug_mode: DebugMode) -
         
 
         if (debug_mode == DebugMode::Step || debug_mode == DebugMode::Verbose) && !is_break {
-            print!("{}:", instruction_to_char(instruction));
-            for x in &data {
-                print!(" {}", x);
+            let mut output = instruction_to_char(instruction).to_string() + ":";
+            let mut pointer_position: usize = 0;
+            for (i, x) in data.iter().enumerate() {
+                output += " ";
+                if i == pointer {
+                    pointer_position = output.len();
+                }
+                output += &x.to_string();
             }
-            println!();
+            println!("{}", output);
+            println!("{}^", " ".repeat(pointer_position));
         }
         
         if debug_mode == DebugMode::Step || is_break {
