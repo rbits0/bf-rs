@@ -234,6 +234,8 @@ pub fn run(code: &str, breakpoints: bool, macros: bool, debug_mode: DebugMode) -
                 }
             },
             Instruction::Input => {
+                println!();
+
                 let mut input: [u8; 1] = [0];
                 io::stdin().read(&mut input).map_err(|_| "failed to read input")?;
                 if input[0] > 127 {
