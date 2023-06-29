@@ -246,6 +246,9 @@ pub fn run(code: &str, breakpoints: bool, macros: bool, debug_mode: DebugMode) -
             Instruction::Output => {
                 let output = data[pointer] as char;
                 print!("{}", output);
+                if debug_mode == DebugMode::Step || debug_mode == DebugMode::Verbose {
+                    println!();
+                }
             },
             Instruction::Break => {
                 is_break = true;
