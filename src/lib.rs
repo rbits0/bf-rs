@@ -1,4 +1,4 @@
-use std::{error::Error, io::{self, Read}, collections::HashMap};
+use std::{error::Error, io::{self, Read, Write}, collections::HashMap};
 use clap::{Parser, ValueEnum};
 
 
@@ -234,7 +234,7 @@ pub fn run(code: &str, breakpoints: bool, macros: bool, debug_mode: DebugMode) -
                 }
             },
             Instruction::Input => {
-                println!();
+                io::stdout().flush();
 
                 let mut input: [u8; 1] = [0];
                 io::stdin().read(&mut input).map_err(|_| "failed to read input")?;
