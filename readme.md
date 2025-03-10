@@ -1,5 +1,5 @@
 # bf-rs
-A brainfuck interpreter written in Rust.
+A [brainfuck](https://en.m.wikipedia.org/wiki/Brainfuck) interpreter written in Rust.
 
 ## Features
 - Display memory and instructions
